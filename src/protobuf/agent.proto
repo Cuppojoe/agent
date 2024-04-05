@@ -1,0 +1,15 @@
+syntax = "proto3";
+package Agent;
+option go_package = "agent/protobuf";
+
+service Agent {
+  rpc HelloWorld(HelloWorldRequest) returns (HelloWorldResponse);
+}
+
+message HelloWorldRequest {
+
+}
+
+message HelloWorldResponse {
+  string message = 1;
+}
