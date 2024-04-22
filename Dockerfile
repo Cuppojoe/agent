@@ -20,4 +20,4 @@ RUN apt-get install unzip && \
 
 COPY --from=builder /build/agent /app/
 WORKDIR /app
-ENTRYPOINT ["exec", "./agent", "server"]
+ENTRYPOINT ["./agent", "server"]

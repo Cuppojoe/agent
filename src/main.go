@@ -3,6 +3,7 @@ package main
 import (
 	"agent/commander"
 	pb "agent/protobuf"
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -24,6 +26,11 @@ import (
 
 type SayHelloMessage struct {
 	Url string `json:"url"`
+}
+
+type SendBytes struct {
+	Size      uint64 `json:"size"`
+	TargetUrl string `json:"targetUrl"`
 }
 
 func main() {
@@ -98,11 +105,62 @@ func exposeRest(hostName string, cv *prometheus.CounterVec) {
 	exposeHelloWorldHandler(r, hostName, cv)
 	exposeHealthCheck(r, cv)
 	exposeSayHelloGrpc(r)
+	exposeSendBytes(r)
+	exposeReceiveBytes(r)
 	go exposeMetrics(cv)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", getPortFromEnv("REST_PORT", 8080)), r)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+}
+
+func exposeSendBytes(r *mux.Router) {
+	r.HandleFunc("/send_bytes", func(rw http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			rw.WriteHeader(500)
+			return
+		}
+		s := SendBytes{}
+		err = json.Unmarshal(body, &s)
+		if err != nil {
+			rw.WriteHeader(400)
+			return
+		}
+
+		b := make([]byte, s.Size)
+		for i := uint64(0); i < s.Size; i++ {
+			b[i] = byte(rand.Uint32() % 255)
+		}
+
+		if s.TargetUrl == "" {
+			_, _ = rw.Write(b)
+			return
+		}
+
+		response, err := http.Post(s.TargetUrl, "text/plain", bytes.NewBuffer(b))
+		if err != nil {
+			rw.WriteHeader(400)
+			return
+		}
+		b, err = io.ReadAll(response.Body)
+		if err != nil {
+			rw.WriteHeader(500)
+			return
+		}
+		_, _ = rw.Write(b)
+	})
+}
+
+func exposeReceiveBytes(r *mux.Router) {
+	r.HandleFunc("/receive_bytes", func(rw http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			rw.WriteHeader(500)
+			return
+		}
+		_, _ = rw.Write([]byte(strconv.Itoa(len(body))))
+	})
 }
 
 func exposeSayHelloGrpc(r *mux.Router) {
