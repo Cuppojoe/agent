@@ -3,7 +3,7 @@ WORKDIR /build
 COPY ./src .
 ARG GOOS
 ARG GOARCH
-RUN CGO_ENABLED=- GOOS=${GOOS} GOARCH=${GOARCH} go build -a -installsuffix cgo -o agent .
+RUN CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -a -installsuffix cgo -o agent .
 
 FROM ubuntu
 RUN apt-get update
