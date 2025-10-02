@@ -1,0 +1,55 @@
+name: build-multiarch
+on:
+  push:
+    branches: [ main ]
+    tags:     [ 'v*' ]
+
+env:
+  IMAGE: ghcr.io/your-org/your-app
+  TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: amd64
+            runs-on: ubuntu-24.04
+          - platform: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    permissions: { packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: make push-image-${{ matrix.platform }} IMAGE="${IMAGE}" TAG="${TAG}"
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions: { packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Compute extra tags for release pushes: v1, v1.2, latest
+      - id: tags
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" && "${{ github.ref_name }}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            prefix=""; [[ "${{ github.ref_name }}" == v* ]] && prefix="v"
+            echo "extra_tags=${prefix}${BASH_REMATCH[1]} ${prefix}${BASH_REMATCH[1]}.${BASH_REMATCH[2]} latest" >> $GITHUB_OUTPUT
+          else
+            echo "extra_tags=" >> $GITHUB_OUTPUT
+          fi
+
+      - run: make combine-push-images IMAGE="${IMAGE}" TAG="${TAG}" TAGS="${{ steps.tags.outputs.extra_tags }}"
