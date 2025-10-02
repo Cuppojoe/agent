@@ -1,6 +1,6 @@
 .PHONY: build-image-amd64 build-image-arm64 push-image build-proto
 TAG ?= 0.9.6
-IMAGE ?= ghcr.io/Cuppojoe/agent
+IMAGE ?= ghcr.io/cuppojoe/agent
 CTX   ?= .
 # Space-separated list of *extra* tags (e.g. "v1 v1.2 latest"); may be empty
 TAGS  ?=
