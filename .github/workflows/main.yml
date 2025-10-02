@@ -5,7 +5,7 @@ on:
     tags:     [ 'v*' ]
 
 env:
-  IMAGE: ghcr.io/your-org/your-app
+  IMAGE: ghcr.io/Cuppojoe/agent
   TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
 
 jobs:
