@@ -1,9 +1,9 @@
-FROM golang:1.19 AS builder
+FROM golang:1.24 AS builder
 WORKDIR /build
-COPY ./src .
+COPY ./ .
 ARG GOOS
 ARG GOARCH
-RUN CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -a -installsuffix cgo -o agent .
+RUN CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -a -installsuffix cgo -o agent ./cmd
 
 FROM ubuntu
 RUN apt-get update
